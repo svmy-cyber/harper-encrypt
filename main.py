@@ -63,7 +63,7 @@ class PublicKey:
             equation = StandardEquation(coefficients, constant)
             self.standard_equations.append(equation)
     def produce_blueprint(self):
-        # turn the standard_equations list into a tuple
+            # turn the standard_equations list into a tuple
 
 
 class EncapsulationEquation:
@@ -87,6 +87,5 @@ def select_random_equation(public_key: PublicKey):
     return public_key.standard_equations[factor]
 
 if __name__ == '__main__':
-    for i in range(30):
-        print(perf_counter_ns())
+
 
