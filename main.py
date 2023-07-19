@@ -23,8 +23,7 @@ class EncryptedCharacterContainer:
         self.public_key = public_key
         self.character_ascii_char = character
         self.character_unicode_int = ord(self.character_ascii_char)
-        self.character_binary_int = bin(self.character_unicode_int)
-        self.character_binary_string = str(self.character_binary_int)
+        self.character_binary_string = bin(self.character_unicode_int)[2:].zfill(8)
         self.encapsulation_equations_stringified = []
         self.encapsulation_equations_structured = []
         for binary_character in self.character_binary_string:
@@ -76,7 +75,7 @@ class StandardEquation:
         elif negative_upper_boundary > difference > negative_lower_boundary:
             data = str(0)
         else:
-            raise Exception("Invalid data detected")  # replace with random generated data later
+            data = str(return_random_int(2, False))
         return data
 
 
