@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from time import perf_counter_ns
 
 
@@ -135,47 +134,44 @@ class DecryptedCharacterContainer:
 
 
 class PrivateKey:
-    def __init__(self, filepath, mod_value):
-        assert isinstance(filepath, str)
+    def __init__(self, file_path, mod_value):
+        assert isinstance(file_path, str)
         assert isinstance(mod_value, int)
         self.mod_value = mod_value
         self.max_error = 3
         self.vectors = []
-        if os.path.exists(filepath):
-            if os.path.isfile(filepath):
-                self.vectors = eval(load_from_file(filepath))
-            else:
-                for i in range(self.mod_value):
-                    self.vectors.append(return_random_int(self.mod_value, True))
-                save_to_file(self.vectors, filepath)
+        path_with_extension = file_path + ".txt"
+        if os.path.isfile(path_with_extension):
+            self.vectors = eval(load_from_file(path_with_extension))
         else:
-            raise Exception("Invalid File Path Provided")
+            for i in range(self.mod_value):
+                self.vectors.append(return_random_int(self.mod_value, True))
+            save_to_file(str(self.vectors), file_path)
 
 
 class PublicKey:
-    def __init__(self, filepath, mod_value):
-        assert isinstance(filepath, str)
+    def __init__(self, file_path, mod_value):
+        assert isinstance(file_path, str)
         assert isinstance(mod_value, int)
-        self.file_path = filepath
+        self.file_path = file_path
         self.mod_value = mod_value
         self.standard_equations = []
-        if os.path.exists(filepath):
-            if os.path.isfile(filepath):
-                self.standard_equations = eval(load_from_file(filepath))
-            else:
-                private_key = PrivateKey(filepath + "_PrivateKey", self.mod_value)
-                for equation_index in range(self.mod_value):
-                    coefficients = []
-                    constant = return_random_int(3, False)
-                    for coefficient_index in range(self.mod_value):
-                        random_coefficient = return_random_int(self.mod_value, True)
-                        coefficients.append(random_coefficient)
-                        product = (coefficients[coefficient_index] * private_key.vectors[coefficient_index])
-                        constant = constant + product
-                    new_standard_equation = StandardEquation(coefficients, constant)
-                    self.standard_equations.append(new_standard_equation)
+        path_with_extension = file_path + ".txt"
+        if os.path.isfile(path_with_extension):
+            self.standard_equations = eval(load_from_file(path_with_extension))
         else:
-            raise Exception("Invalid File Path Provided")
+            private_key = PrivateKey(file_path + "_PrivateKey", self.mod_value)
+            for equation_index in range(self.mod_value):
+                coefficients = []
+                constant = return_random_int(3, False)
+                for coefficient_index in range(self.mod_value):
+                    random_coefficient = return_random_int(self.mod_value, True)
+                    coefficients.append(random_coefficient)
+                    product = (coefficients[coefficient_index] * private_key.vectors[coefficient_index])
+                    constant = constant + product
+                new_standard_equation = StandardEquation(coefficients, constant)
+                self.standard_equations.append(new_standard_equation)
+            save_to_file(str(self.standard_equations), file_path)
 
 
 def select_random_equation(public_key: PublicKey):
@@ -205,7 +201,9 @@ def show_menu():
 def handle_option(selected_option):
     if selected_option == 1:
         print("Configure Key Pair")
-
+        identifier_input = input("Enter a Key Pair identifier string: ")
+        path = os.getcwd() + "\\" + identifier_input
+        PublicKey(path, 89)
     elif selected_option == 2:
         print("Encrypt Text")
 
