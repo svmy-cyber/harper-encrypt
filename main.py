@@ -78,7 +78,7 @@ class EncapsulationEquation:
         assert isinstance(public_key, PublicKey)
         self.component_standard_equations = []
         self.encapsulation_equation = StandardEquation([], 0)
-        self.component_limit = public_key.private_key.mod_value // 23
+        self.component_limit = 5
         for component in range(self.component_limit):
             self.component_standard_equations.append(select_random_equation(public_key))
         for equation in self.component_standard_equations:
@@ -140,10 +140,16 @@ class PrivateKey:
         assert isinstance(file_path, str)
         self.mod_value = mod_value
         self.file_path = file_path
-        # calculate random vectors
-        self.vectors = [34, 23, 76]
-        # calculate random errors
-        self.errors = [2, -1, 0]
+        self.max_error = 3
+        self.vectors = []
+        self.errors = []
+        for i in range(mod_value):
+            self.vectors.append(return_random_int(mod_value, True))
+            self.errors.append(return_random_int(3, False))
+
+    def return_corresponding_error(self, index):
+        assert isinstance(index, int)
+        return self.errors[index]
 
 
 class PublicKey:
@@ -153,26 +159,32 @@ class PublicKey:
         self.private_key = private_key
         self.file_path = file_path
         self.standard_equations = []
-        for index, vector in self.private_key.vectors:
-            # create random vectors, calculate constant, and apply the private key's errors
-            coefficients = [1, 2, 3]
-            constant = 45 + private_key.errors[index]
-            equation = StandardEquation(coefficients, constant)
-            self.standard_equations.append(equation)
+        for equation_index in range(self.private_key.mod_value):
+            coefficients = []
+            constant = self.private_key.return_corresponding_error(equation_index)
+            for coefficient_index in range(self.private_key.mod_value):
+                random_coefficient = return_random_int(self.private_key.mod_value, True)
+                coefficients.append(random_coefficient)
+                product = (coefficients[coefficient_index] * self.private_key.vectors[coefficient_index])
+                constant = constant + product
+            new_standard_equation = StandardEquation(coefficients, constant)
+            self.standard_equations.append(new_standard_equation)
 
 
 def select_random_equation(public_key: PublicKey):
-    index = return_random_int(public_key.private_key.mod_value)
+    index = return_random_int(public_key.private_key.mod_value, False)
     return public_key.standard_equations[index]
 
 
-def return_random_int(mod_value: int):
+def return_random_int(mod_value: int, non_zero: bool):
     nanoseconds = perf_counter_ns()
     factor = 1
     for digit in str(nanoseconds):
         if int(digit) != 0:
             factor = (factor + int(digit)) * int(digit)
     factor = factor % mod_value
+    if factor == 0 and non_zero:
+        return 1
     return factor
 
 
