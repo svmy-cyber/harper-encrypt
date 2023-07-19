@@ -3,18 +3,18 @@ from datetime import datetime
 from time import perf_counter_ns
 
 
-# Load from File
 def load_from_file(file_path):
+    path_with_extension = file_path + ".txt"
     with open(file_path, 'r') as file:
         content = file.read()
     return content
 
 
-# Save Key to File
-def save_to_file(text, filename):
-    with open(filename, 'w') as file:
+def save_to_file(text, file_path):
+    path_with_extension = file_path + ".txt"
+    with open(path_with_extension, 'w') as file:
         file.write(text)
-    return filename
+    return file_path
 
 
 class EncryptedCharacterContainer:
@@ -83,7 +83,7 @@ class EncapsulationEquation:
             self.component_standard_equations.append(select_random_equation(public_key))
         for equation in self.component_standard_equations:
             self.encapsulation_equation.add_equation(equation)
-        self.processed_data = ((public_key.private_key.mod_value // 2) * data)
+        self.processed_data = ((public_key.mod_value // 2) * data)
         self.encapsulation_equation.embed_data(self.processed_data)
 
 
@@ -135,44 +135,51 @@ class DecryptedCharacterContainer:
 
 
 class PrivateKey:
-    def __init__(self, mod_value, file_path):
+    def __init__(self, filepath, mod_value):
+        assert isinstance(filepath, str)
         assert isinstance(mod_value, int)
-        assert isinstance(file_path, str)
         self.mod_value = mod_value
-        self.file_path = file_path
         self.max_error = 3
         self.vectors = []
-        self.errors = []
-        for i in range(mod_value):
-            self.vectors.append(return_random_int(mod_value, True))
-            self.errors.append(return_random_int(3, False))
-
-    def return_corresponding_error(self, index):
-        assert isinstance(index, int)
-        return self.errors[index]
+        if os.path.exists(filepath):
+            if os.path.isfile(filepath):
+                self.vectors = eval(load_from_file(filepath))
+            else:
+                for i in range(self.mod_value):
+                    self.vectors.append(return_random_int(self.mod_value, True))
+                save_to_file(self.vectors, filepath)
+        else:
+            raise Exception("Invalid File Path Provided")
 
 
 class PublicKey:
-    def __init__(self, private_key, file_path):
-        assert isinstance(private_key, PrivateKey)
-        assert isinstance(file_path, str)
-        self.private_key = private_key
-        self.file_path = file_path
+    def __init__(self, filepath, mod_value):
+        assert isinstance(filepath, str)
+        assert isinstance(mod_value, int)
+        self.file_path = filepath
+        self.mod_value = mod_value
         self.standard_equations = []
-        for equation_index in range(self.private_key.mod_value):
-            coefficients = []
-            constant = self.private_key.return_corresponding_error(equation_index)
-            for coefficient_index in range(self.private_key.mod_value):
-                random_coefficient = return_random_int(self.private_key.mod_value, True)
-                coefficients.append(random_coefficient)
-                product = (coefficients[coefficient_index] * self.private_key.vectors[coefficient_index])
-                constant = constant + product
-            new_standard_equation = StandardEquation(coefficients, constant)
-            self.standard_equations.append(new_standard_equation)
+        if os.path.exists(filepath):
+            if os.path.isfile(filepath):
+                self.standard_equations = eval(load_from_file(filepath))
+            else:
+                private_key = PrivateKey(filepath + "_PrivateKey", self.mod_value)
+                for equation_index in range(self.mod_value):
+                    coefficients = []
+                    constant = return_random_int(3, False)
+                    for coefficient_index in range(self.mod_value):
+                        random_coefficient = return_random_int(self.mod_value, True)
+                        coefficients.append(random_coefficient)
+                        product = (coefficients[coefficient_index] * private_key.vectors[coefficient_index])
+                        constant = constant + product
+                    new_standard_equation = StandardEquation(coefficients, constant)
+                    self.standard_equations.append(new_standard_equation)
+        else:
+            raise Exception("Invalid File Path Provided")
 
 
 def select_random_equation(public_key: PublicKey):
-    index = return_random_int(public_key.private_key.mod_value, False)
+    index = return_random_int(public_key.mod_value, False)
     return public_key.standard_equations[index]
 
 
