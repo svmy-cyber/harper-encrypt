@@ -3,15 +3,13 @@ from time import perf_counter_ns
 
 
 def load_from_file(file_path):
-    file_path_with_extension = file_path + ".txt"
-    with open(file_path_with_extension, 'r') as file:
+    with open(file_path, 'r') as file:
         content = file.read()
     return content
 
 
 def save_to_file(item_list, file_path):
-    path_with_extension = file_path + ".txt"
-    with open(path_with_extension, 'w') as file:
+    with open(file_path, 'w') as file:
         file.write(str(item_list))
     return file_path
 
@@ -97,42 +95,37 @@ class EncapsulationEquation:
 
 
 class EncryptedString:
-    def __init__(self, public_key, plain_string, encrypted_string_path):
+    def __init__(self, public_key, plain_string, encrypted_string_file_path):
         assert isinstance(public_key, PublicKey)
         assert isinstance(plain_string, str)
+        assert isinstance(encrypted_string_file_path, str)
         self.public_key = public_key
         self.plain_string = plain_string
         self.encrypted_string_structured = []
         self.encrypted_string_stringified = []
+        self.encrypted_string_file_path = encrypted_string_file_path
         for letter in self.plain_string:
             encrypted_character = EncryptedCharacterContainer(self.public_key, letter)
             self.encrypted_string_structured.append(encrypted_character.encapsulation_equations_structured)
             self.encrypted_string_stringified.append(encrypted_character.encapsulation_equations_stringified)
-        path_with_extension = encrypted_string_path + ".txt"
-        if not os.path.isfile(path_with_extension):
-            save_to_file(self.encrypted_string_stringified, encrypted_string_path)
-        else:
-            raise Exception("File already exists")
+        save_to_file(self.encrypted_string_stringified, self.encrypted_string_file_path)
 
 
 class DecryptedString:
-    def __init__(self, public_key, private_key, encrypted_string, encrypted_string_file_path):
+    def __init__(self, public_key, private_key, encrypted_string, decrypted_string_file_path):
         assert isinstance(public_key, PublicKey)
         assert isinstance(private_key, PrivateKey)
         assert isinstance(encrypted_string, str)
+        assert isinstance(decrypted_string_file_path, str)
         self.public_key = public_key
         self.private_key = private_key
+        self.decrypted_string_file_path = decrypted_string_file_path
         self.encrypted_string_stringified = eval(encrypted_string)
         self.decrypted_string = ""
         for character_encrypted in self.encrypted_string_stringified:
             character_decrypted = DecryptedCharacterContainer(self.public_key, self.private_key, character_encrypted)
             self.decrypted_string = self.decrypted_string + character_decrypted.character_ascii_char
-        decrypted_string_file_path = encrypted_string_file_path.replace("encrypted", "decrypted")
-        path_with_extension = decrypted_string_file_path + ".txt"
-        if not os.path.isfile(path_with_extension):
-            save_to_file(self.decrypted_string, decrypted_string_file_path)
-        else:
-            raise Exception("File already exists")
+        save_to_file(self.decrypted_string, self.decrypted_string_file_path)
 
 
 class DecryptedCharacterContainer:
@@ -159,16 +152,16 @@ class PrivateKey:
     def __init__(self, file_path, mod_value):
         assert isinstance(file_path, str)
         assert isinstance(mod_value, int)
+        self.file_path = file_path
         self.mod_value = mod_value
         self.max_error = 3
         self.vectors = []
-        path_with_extension = file_path + ".txt"
-        if os.path.isfile(path_with_extension):
-            self.vectors = eval(load_from_file(file_path))
+        if os.path.isfile(self.file_path):
+            self.vectors = eval(load_from_file(self.file_path))
         else:
             for i in range(self.mod_value):
                 self.vectors.append(return_random_int(self.mod_value, True))
-            save_to_file(str(self.vectors), file_path)
+            save_to_file(str(self.vectors), self.file_path)
 
 
 class PublicKey:
@@ -179,15 +172,14 @@ class PublicKey:
         self.mod_value = mod_value
         self.standard_equations_stringified = []
         self.standard_equations_structured = []
-        path_with_extension = file_path + ".txt"
-        if os.path.isfile(path_with_extension):
-            self.standard_equations_stringified = eval(load_from_file(file_path))
+        if os.path.isfile(self.file_path):
+            self.standard_equations_stringified = eval(load_from_file(self.file_path))
             for index, equation in enumerate(self.standard_equations_stringified):
                 coefficient_list = list(equation[0])
                 constant = equation[1]
                 self.standard_equations_structured.append(StandardEquation(coefficient_list, constant))
         else:
-            private_key = PrivateKey(file_path + "_PrivateKey", self.mod_value)
+            private_key = PrivateKey(self.file_path.replace("public", "private"), self.mod_value)
             for equation_index in range(self.mod_value):
                 coefficients = []
                 constant = 0
@@ -196,16 +188,16 @@ class PublicKey:
                     coefficients.append(random_coefficient)
                     product = (coefficients[coefficient_index] * private_key.vectors[coefficient_index])
                     constant = constant + product
-                constant = constant + generate_error(3)
+                constant = constant + generate_error(4)
                 new_standard_equation = StandardEquation(coefficients, constant)
                 self.standard_equations_structured.append(new_standard_equation)
                 self.standard_equations_stringified.append(new_standard_equation.stringify())
-            save_to_file(self.standard_equations_stringified, file_path)
+            save_to_file(self.standard_equations_stringified, self.file_path)
 
 
 def generate_error(max_error: int):
     negative = return_random_int(2, False)
-    error = return_random_int(max_error, False)
+    error = return_random_int(max_error, True)
     if negative:
         return error * -1
     return error
@@ -228,6 +220,39 @@ def return_random_int(mod_value: int, non_zero: bool):
     return factor
 
 
+def generate_or_load_public_key(mod_value: int):
+    key_pair_identifier_input = input("Enter a Key Pair identifier string: ")
+    public_key_file_path = os.getcwd() + "\\" + key_pair_identifier_input + "_public_key.txt"
+    public_key = PublicKey(public_key_file_path, mod_value)
+    return public_key
+
+
+def request_and_process_cipher_identifier(planned_action: str):
+    identifier = input("Enter an identifier string: ")
+    proposed_path = os.getcwd() + "\\" + identifier
+    if planned_action == "encrypt":
+        return preflight_checks_encrypt(proposed_path)
+    else:
+        return preflight_checks_decrypt(proposed_path)
+
+
+def preflight_checks_decrypt(proposed_path: str):
+    full_path_decrypted = proposed_path + "_decrypted.txt"
+    full_path_encrypted = proposed_path + "_encrypted.txt"
+    if not os.path.isfile(full_path_encrypted):
+        raise Exception("The specified file does not exist.")
+    if os.path.isfile(full_path_decrypted):
+        raise Exception("The proposed action would overwrite an existing file.")
+    return [full_path_encrypted, full_path_decrypted]
+
+
+def preflight_checks_encrypt(proposed_path: str):
+    full_path_encrypted = proposed_path + "_encrypted.txt"
+    if os.path.isfile(full_path_encrypted):
+        raise Exception("The proposed action would overwrite an existing file.")
+    return full_path_encrypted
+
+
 def show_menu():
     print("1. Configure New Key Pair")
     print("2. Encrypt Text")
@@ -238,28 +263,22 @@ def show_menu():
 def handle_option(selected_option):
     if selected_option == 1:
         print("Configure Key Pair")
-        identifier_input = input("Enter a Key Pair identifier string: ")
-        path = os.getcwd() + "\\" + identifier_input
-        PublicKey(path, 89)
+        generate_or_load_public_key(89)
     elif selected_option == 2:
         print("Encrypt Text")
-        key_pair_identifier_input = input("Enter a Key Pair identifier string: ")
-        key_pair_path = os.getcwd() + "\\" + key_pair_identifier_input
-        public_key = PublicKey(key_pair_path, 89)
-        encrypted_text_identifier_input = input("Enter an Encrypted Text identifier string: ")
-        encrypted_text_path = os.getcwd() + "\\" + encrypted_text_identifier_input + "_encrypted"
+        public_key = generate_or_load_public_key(89)
+        encrypted_string_path = request_and_process_cipher_identifier("encrypt")
         text_to_encrypt_input = input("Enter text to encrypt: ")
-        encrypted_string = EncryptedString(public_key, text_to_encrypt_input, encrypted_text_path)
+        EncryptedString(public_key, text_to_encrypt_input, encrypted_string_path)
+        print("Text Successfully Encrypted")
     elif selected_option == 3:
         print("Decrypt Text")
-        key_pair_identifier_input = input("Enter a Key Pair identifier string: ")
-        key_pair_path = os.getcwd() + "\\" + key_pair_identifier_input
-        public_key = PublicKey(key_pair_path, 89)
-        private_key = PrivateKey(key_pair_path + "_PrivateKey", 89)
-        encrypted_text_identifier_input = input("Enter an Encrypted Text identifier string: ")
-        encrypted_text_path = os.getcwd() + "\\" + encrypted_text_identifier_input + "_encrypted"
-        encrypted_text = load_from_file(encrypted_text_path)
-        decrypted_string = DecryptedString(public_key, private_key, encrypted_text, encrypted_text_path)
+        public_key = generate_or_load_public_key(89)
+        private_key = PrivateKey(public_key.file_path.replace("public", "private"), 89)
+        encrypted_and_decrypted_full_paths = request_and_process_cipher_identifier("decrypt")
+        encrypted_text = load_from_file(encrypted_and_decrypted_full_paths[0])
+        decrypted_string = DecryptedString(public_key, private_key, encrypted_text, encrypted_and_decrypted_full_paths[1])
+        print("Decrypted Text: " + decrypted_string.decrypted_string)
     elif selected_option == 4:
         print("Exiting the program...")
         exit()
