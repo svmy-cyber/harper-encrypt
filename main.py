@@ -2,7 +2,8 @@ import os
 from time import perf_counter_ns
 
 
-def load_from_file(file_path_with_extension):
+def load_from_file(file_path):
+    file_path_with_extension = file_path + ".txt"
     with open(file_path_with_extension, 'r') as file:
         content = file.read()
     return content
@@ -66,14 +67,14 @@ class StandardEquation:
         negative_lower_boundary = negative - tolerance
         negative_upper_boundary = negative + tolerance
         actual_solution = 0
-        for index, vector in vectors:
+        for index, vector in enumerate(vectors):
             product = vector * self.coefficients[index]
             actual_solution = actual_solution + product
         difference = self.constant - actual_solution
         if affirmative_upper_boundary > difference > affirmative_lower_boundary:
-            data = 1
+            data = str(1)
         elif negative_upper_boundary > difference > negative_lower_boundary:
-            data = 0
+            data = str(0)
         else:
             raise Exception("Invalid data detected")  # replace with random generated data later
         return data
@@ -104,7 +105,7 @@ class EncryptedString:
         self.plain_string = plain_string
         self.encrypted_string_structured = []
         self.encrypted_string_stringified = []
-        for letter in plain_string:
+        for letter in self.plain_string:
             encrypted_character = EncryptedCharacterContainer(self.public_key, letter)
             self.encrypted_string_structured.append(encrypted_character.encapsulation_equations_structured)
             self.encrypted_string_stringified.append(encrypted_character.encapsulation_equations_stringified)
@@ -114,19 +115,25 @@ class EncryptedString:
         else:
             raise Exception("File already exists")
 
+
 class DecryptedString:
-    def __init__(self, public_key, private_key, encrypted_string):
+    def __init__(self, public_key, private_key, encrypted_string, encrypted_string_file_path):
         assert isinstance(public_key, PublicKey)
         assert isinstance(private_key, PrivateKey)
         assert isinstance(encrypted_string, str)
         self.public_key = public_key
         self.private_key = private_key
-        self.encrypted_string = encrypted_string
-        self.encrypted_object = list(encrypted_string)
-        self.plain_string = ""
-        for character_encrypted in self.encrypted_object:
+        self.encrypted_string_stringified = eval(encrypted_string)
+        self.decrypted_string = ""
+        for character_encrypted in self.encrypted_string_stringified:
             character_decrypted = DecryptedCharacterContainer(self.public_key, self.private_key, character_encrypted)
-            self.plain_string = self.plain_string + character_decrypted.character_ascii_char
+            self.decrypted_string = self.decrypted_string + character_decrypted.character_ascii_char
+        decrypted_string_file_path = encrypted_string_file_path.replace("encrypted", "decrypted")
+        path_with_extension = decrypted_string_file_path + ".txt"
+        if not os.path.isfile(path_with_extension):
+            save_to_file(self.decrypted_string, decrypted_string_file_path)
+        else:
+            raise Exception("File already exists")
 
 
 class DecryptedCharacterContainer:
@@ -158,7 +165,7 @@ class PrivateKey:
         self.vectors = []
         path_with_extension = file_path + ".txt"
         if os.path.isfile(path_with_extension):
-            self.vectors = eval(load_from_file(path_with_extension))
+            self.vectors = eval(load_from_file(file_path))
         else:
             for i in range(self.mod_value):
                 self.vectors.append(return_random_int(self.mod_value, True))
@@ -175,7 +182,7 @@ class PublicKey:
         self.standard_equations_structured = []
         path_with_extension = file_path + ".txt"
         if os.path.isfile(path_with_extension):
-            self.standard_equations_stringified = eval(load_from_file(path_with_extension))
+            self.standard_equations_stringified = eval(load_from_file(file_path))
             for index, equation in enumerate(self.standard_equations_stringified):
                 coefficient_list = list(equation[0])
                 constant = equation[1]
@@ -240,14 +247,20 @@ def handle_option(selected_option):
         key_pair_identifier_input = input("Enter a Key Pair identifier string: ")
         key_pair_path = os.getcwd() + "\\" + key_pair_identifier_input
         public_key = PublicKey(key_pair_path, 89)
-        encrypted_text_identifier_input = input("Enter a Key Pair identifier string: ")
-        encrypted_text_path = os.getcwd() + "\\" + encrypted_text_identifier_input
+        encrypted_text_identifier_input = input("Enter an Encrypted Text identifier string: ")
+        encrypted_text_path = os.getcwd() + "\\" + encrypted_text_identifier_input + "_encrypted"
         text_to_encrypt_input = input("Enter text to encrypt: ")
         encrypted_string = EncryptedString(public_key, text_to_encrypt_input, encrypted_text_path)
-
     elif selected_option == 3:
         print("Decrypt Text")
-
+        key_pair_identifier_input = input("Enter a Key Pair identifier string: ")
+        key_pair_path = os.getcwd() + "\\" + key_pair_identifier_input
+        public_key = PublicKey(key_pair_path, 89)
+        private_key = PrivateKey(key_pair_path + "_PrivateKey", 89)
+        encrypted_text_identifier_input = input("Enter an Encrypted Text identifier string: ")
+        encrypted_text_path = os.getcwd() + "\\" + encrypted_text_identifier_input + "_encrypted"
+        encrypted_text = load_from_file(encrypted_text_path)
+        decrypted_string = DecryptedString(public_key, private_key, encrypted_text, encrypted_text_path)
     elif selected_option == 4:
         print("Exiting the program...")
         exit()
