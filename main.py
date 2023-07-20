@@ -222,14 +222,14 @@ def return_random_int(mod_value: int, non_zero: bool):
 
 def generate_or_load_public_key(mod_value: int):
     key_pair_identifier_input = input("Enter a Key Pair identifier string: ")
-    public_key_file_path = os.getcwd() + "\\" + key_pair_identifier_input + "_public_key.txt"
+    public_key_file_path = os.path.join(os.getcwd(), key_pair_identifier_input + "_public_key.txt")
     public_key = PublicKey(public_key_file_path, mod_value)
     return public_key
 
 
 def request_and_process_cipher_identifier(planned_action: str):
     identifier = input("Enter an identifier string: ")
-    proposed_path = os.getcwd() + "\\" + identifier
+    proposed_path = os.path.join(os.getcwd(), identifier)
     if planned_action == "encrypt":
         return preflight_checks_encrypt(proposed_path)
     else:
