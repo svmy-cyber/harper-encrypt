@@ -2,16 +2,51 @@ import os
 from time import perf_counter_ns
 
 
-def load_from_file(file_path):
-    with open(file_path, 'r') as file:
-        content = file.read()
-    return content
+class PrivateKey:
+    def __init__(self, file_path, mod_value):
+        assert isinstance(file_path, str)
+        assert isinstance(mod_value, int)
+        self.file_path = file_path
+        self.mod_value = mod_value
+        self.max_error = 3
+        self.vectors = []
+        if os.path.isfile(self.file_path):
+            self.vectors = eval(load_from_file(self.file_path))
+        else:
+            for i in range(self.mod_value):
+                self.vectors.append(return_random_int(self.mod_value, True))
+            save_to_file(str(self.vectors), self.file_path)
 
 
-def save_to_file(item_list, file_path):
-    with open(file_path, 'w') as file:
-        file.write(str(item_list))
-    return file_path
+class PublicKey:
+    def __init__(self, file_path, mod_value):
+        assert isinstance(file_path, str)
+        assert isinstance(mod_value, int)
+        self.file_path = file_path
+        self.mod_value = mod_value
+        self.standard_equations_stringified = []
+        self.standard_equations_structured = []
+        if os.path.isfile(self.file_path):
+            self.standard_equations_stringified = eval(load_from_file(self.file_path))
+            for index, equation in enumerate(self.standard_equations_stringified):
+                coefficient_list = list(equation[0])
+                constant = equation[1]
+                self.standard_equations_structured.append(StandardEquation(coefficient_list, constant))
+        else:
+            private_key = PrivateKey(self.file_path.replace("public", "private"), self.mod_value)
+            for equation_index in range(self.mod_value):
+                coefficients = []
+                constant = 0
+                for coefficient_index in range(self.mod_value):
+                    random_coefficient = return_random_int(self.mod_value, True)
+                    coefficients.append(random_coefficient)
+                    product = (coefficients[coefficient_index] * private_key.vectors[coefficient_index])
+                    constant = constant + product
+                constant = constant + generate_error(4)
+                new_standard_equation = StandardEquation(coefficients, constant)
+                self.standard_equations_structured.append(new_standard_equation)
+                self.standard_equations_stringified.append(new_standard_equation.stringify())
+            save_to_file(self.standard_equations_stringified, self.file_path)
 
 
 class EncryptedCharacterContainer:
@@ -148,78 +183,6 @@ class DecryptedCharacterContainer:
         self.character_ascii_char = chr(self.character_unicode_int)
 
 
-class PrivateKey:
-    def __init__(self, file_path, mod_value):
-        assert isinstance(file_path, str)
-        assert isinstance(mod_value, int)
-        self.file_path = file_path
-        self.mod_value = mod_value
-        self.max_error = 3
-        self.vectors = []
-        if os.path.isfile(self.file_path):
-            self.vectors = eval(load_from_file(self.file_path))
-        else:
-            for i in range(self.mod_value):
-                self.vectors.append(return_random_int(self.mod_value, True))
-            save_to_file(str(self.vectors), self.file_path)
-
-
-class PublicKey:
-    def __init__(self, file_path, mod_value):
-        assert isinstance(file_path, str)
-        assert isinstance(mod_value, int)
-        self.file_path = file_path
-        self.mod_value = mod_value
-        self.standard_equations_stringified = []
-        self.standard_equations_structured = []
-        if os.path.isfile(self.file_path):
-            self.standard_equations_stringified = eval(load_from_file(self.file_path))
-            for index, equation in enumerate(self.standard_equations_stringified):
-                coefficient_list = list(equation[0])
-                constant = equation[1]
-                self.standard_equations_structured.append(StandardEquation(coefficient_list, constant))
-        else:
-            private_key = PrivateKey(self.file_path.replace("public", "private"), self.mod_value)
-            for equation_index in range(self.mod_value):
-                coefficients = []
-                constant = 0
-                for coefficient_index in range(self.mod_value):
-                    random_coefficient = return_random_int(self.mod_value, True)
-                    coefficients.append(random_coefficient)
-                    product = (coefficients[coefficient_index] * private_key.vectors[coefficient_index])
-                    constant = constant + product
-                constant = constant + generate_error(4)
-                new_standard_equation = StandardEquation(coefficients, constant)
-                self.standard_equations_structured.append(new_standard_equation)
-                self.standard_equations_stringified.append(new_standard_equation.stringify())
-            save_to_file(self.standard_equations_stringified, self.file_path)
-
-
-def generate_error(max_error: int):
-    negative = return_random_int(2, False)
-    error = return_random_int(max_error, True)
-    if negative:
-        return error * -1
-    return error
-
-
-def select_random_equation(public_key: PublicKey):
-    index = return_random_int(public_key.mod_value, False)
-    return public_key.standard_equations_structured[index]
-
-
-def return_random_int(mod_value: int, non_zero: bool):
-    nanoseconds = perf_counter_ns()
-    factor = 1
-    for digit in str(nanoseconds):
-        if int(digit) != 0:
-            factor = (factor + int(digit)) * int(digit)
-    factor = factor % mod_value
-    if factor == 0 and non_zero:
-        return 1
-    return factor
-
-
 def generate_or_load_public_key(mod_value: int):
     key_pair_identifier_input = input("Enter a Key Pair identifier string: ")
     public_key_file_path = os.path.join(os.getcwd(), key_pair_identifier_input + "_public_key.txt")
@@ -251,6 +214,43 @@ def preflight_checks_encrypt(proposed_path: str):
     if os.path.isfile(full_path_encrypted):
         raise Exception("The proposed action would overwrite an existing file.")
     return full_path_encrypted
+
+
+def load_from_file(file_path):
+    with open(file_path, 'r') as file:
+        content = file.read()
+    return content
+
+
+def save_to_file(item_list, file_path):
+    with open(file_path, 'w') as file:
+        file.write(str(item_list))
+    return file_path
+
+
+def generate_error(max_error: int):
+    negative = return_random_int(2, False)
+    error = return_random_int(max_error, True)
+    if negative:
+        return error * -1
+    return error
+
+
+def select_random_equation(public_key: PublicKey):
+    index = return_random_int(public_key.mod_value, False)
+    return public_key.standard_equations_structured[index]
+
+
+def return_random_int(mod_value: int, non_zero: bool):
+    nanoseconds = perf_counter_ns()
+    factor = 1
+    for digit in str(nanoseconds):
+        if int(digit) != 0:
+            factor = (factor + int(digit)) * int(digit)
+    factor = factor % mod_value
+    if factor == 0 and non_zero:
+        return 1
+    return factor
 
 
 def show_menu():
