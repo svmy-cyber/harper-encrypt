@@ -142,28 +142,24 @@ class EncryptedString:
 
 
 class DecryptedString:
-    def __init__(self, public_key, private_key, encrypted_string, decrypted_string_file_path):
-        assert isinstance(public_key, PublicKey)
+    def __init__(self, private_key, encrypted_string, decrypted_string_file_path):
         assert isinstance(private_key, PrivateKey)
         assert isinstance(encrypted_string, str)
         assert isinstance(decrypted_string_file_path, str)
-        self.public_key = public_key
         self.private_key = private_key
         self.decrypted_string_file_path = decrypted_string_file_path
         self.encrypted_string_stringified = eval(encrypted_string)
         self.decrypted_string = ""
         for character_encrypted in self.encrypted_string_stringified:
-            character_decrypted = DecryptedCharacterContainer(self.public_key, self.private_key, character_encrypted)
+            character_decrypted = DecryptedCharacterContainer(self.private_key, character_encrypted)
             self.decrypted_string = self.decrypted_string + character_decrypted.character_ascii_char
         save_to_file(self.decrypted_string, self.decrypted_string_file_path)
 
 
 class DecryptedCharacterContainer:
-    def __init__(self, public_key, private_key, character_encrypted):
-        assert isinstance(public_key, PublicKey)
+    def __init__(self, private_key, character_encrypted):
         assert isinstance(private_key, PrivateKey)
         assert isinstance(character_encrypted, list)
-        self.public_key = public_key
         self.private_key = private_key
         self.character_encrypted = character_encrypted
         self.character_binary_string = ""
@@ -281,7 +277,7 @@ def handle_option(selected_option):
         private_key = PrivateKey(public_key.file_path.replace("public", "private"), 89)
         encrypted_and_decrypted_full_paths = request_and_process_cipher_identifier("decrypt")
         encrypted_text = load_from_file(encrypted_and_decrypted_full_paths[0])
-        decrypted_string = DecryptedString(public_key, private_key, encrypted_text, encrypted_and_decrypted_full_paths[1])
+        decrypted_string = DecryptedString(private_key, encrypted_text, encrypted_and_decrypted_full_paths[1])
         print()
         print("Decrypted Text: " + decrypted_string.decrypted_string_file_path)
         print()
