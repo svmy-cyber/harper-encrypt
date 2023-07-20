@@ -8,7 +8,6 @@ class PrivateKey:
         assert isinstance(mod_value, int)
         self.file_path = file_path
         self.mod_value = mod_value
-        self.max_error = 3
         self.vectors = []
         if os.path.isfile(self.file_path):
             self.vectors = eval(load_from_file(self.file_path))
@@ -42,7 +41,7 @@ class PublicKey:
                     coefficients.append(random_coefficient)
                     product = (coefficients[coefficient_index] * private_key.vectors[coefficient_index])
                     constant = constant + product
-                constant = constant + generate_error(3)
+                constant = constant + generate_error(max_error(mod_value))
                 new_standard_equation = StandardEquation(coefficients, constant)
                 self.standard_equations_structured.append(new_standard_equation)
                 self.standard_equations_stringified.append(new_standard_equation.stringify())
@@ -91,7 +90,7 @@ class StandardEquation:
     def extract_data(self, vectors, mod_value):
         assert isinstance(vectors, list)
         assert isinstance(mod_value, int)
-        tolerance = (mod_value // 4)
+        tolerance = error_tolerance(mod_value)
         affirmative = mod_value // 2
         affirmative_lower_boundary = affirmative - tolerance
         affirmative_upper_boundary = affirmative + tolerance
@@ -107,12 +106,24 @@ class StandardEquation:
         return data
 
 
+def encapsulation_component_limit(mod_value: int):
+    return error_tolerance(mod_value) // 4
+
+
+def error_tolerance(mod_value: int):
+    return mod_value // 4
+
+
+def max_error(mod_value: int):
+    return error_tolerance(mod_value) // encapsulation_component_limit(mod_value)
+
+
 class EncapsulationEquation:
     def __init__(self, public_key, data):
         assert isinstance(public_key, PublicKey)
         self.component_standard_equations = []
         self.encapsulation_equation = StandardEquation([], 0)
-        self.component_limit = 5
+        self.component_limit = encapsulation_component_limit(public_key.mod_value)
         for component in range(self.component_limit):
             self.component_standard_equations.append(select_random_equation(public_key))
         for equation in self.component_standard_equations:
@@ -219,9 +230,9 @@ def save_to_file(item_list, file_path):
     return file_path
 
 
-def generate_error(max_error: int):
+def generate_error(max_error_size: int):
     negative = return_random_int(2, False)
-    index = return_random_int(max_error, False)
+    index = return_random_int(max_error_size, False)
     error = index + 1
     if negative:
         return error * -1
@@ -252,17 +263,20 @@ def show_menu():
     print("4. Exit")
 
 
+mod_val = 97
+
+
 def handle_option(selected_option):
     if selected_option == 1:
         print("Configure Key Pair")
-        public_key = generate_or_load_public_key(89)
+        public_key = generate_or_load_public_key(mod_val)
         print()
         print("Public Key: " + public_key.file_path)
         print("Private Key: " + public_key.file_path.replace("public", "private"))
         print()
     elif selected_option == 2:
         print("Encrypt Text")
-        public_key = generate_or_load_public_key(89)
+        public_key = generate_or_load_public_key(mod_val)
         encrypted_string_path = request_and_process_cipher_identifier("encrypt")
         text_to_encrypt_input = input("Enter text to encrypt: ")
         encrypted_text = EncryptedString(public_key, text_to_encrypt_input, encrypted_string_path)
@@ -273,8 +287,8 @@ def handle_option(selected_option):
         print()
     elif selected_option == 3:
         print("Decrypt Text")
-        public_key = generate_or_load_public_key(89)
-        private_key = PrivateKey(public_key.file_path.replace("public", "private"), 89)
+        public_key = generate_or_load_public_key(mod_val)
+        private_key = PrivateKey(public_key.file_path.replace("public", "private"), mod_val)
         encrypted_and_decrypted_full_paths = request_and_process_cipher_identifier("decrypt")
         encrypted_text = load_from_file(encrypted_and_decrypted_full_paths[0])
         decrypted_string = DecryptedString(private_key, encrypted_text, encrypted_and_decrypted_full_paths[1])
