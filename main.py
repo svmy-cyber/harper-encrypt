@@ -42,7 +42,7 @@ class PublicKey:
                     coefficients.append(random_coefficient)
                     product = (coefficients[coefficient_index] * private_key.vectors[coefficient_index])
                     constant = constant + product
-                constant = constant + generate_error(4)
+                constant = constant + generate_error(3)
                 new_standard_equation = StandardEquation(coefficients, constant)
                 self.standard_equations_structured.append(new_standard_equation)
                 self.standard_equations_stringified.append(new_standard_equation.stringify())
@@ -230,7 +230,8 @@ def save_to_file(item_list, file_path):
 
 def generate_error(max_error: int):
     negative = return_random_int(2, False)
-    error = return_random_int(max_error, True)
+    index = return_random_int(max_error, False)
+    error = index + 1
     if negative:
         return error * -1
     return error
