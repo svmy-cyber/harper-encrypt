@@ -95,20 +95,15 @@ class StandardEquation:
         affirmative = mod_value // 2
         affirmative_lower_boundary = affirmative - tolerance
         affirmative_upper_boundary = affirmative + tolerance
-        negative = 0
-        negative_lower_boundary = negative - tolerance
-        negative_upper_boundary = negative + tolerance
         actual_solution = 0
         for index, vector in enumerate(vectors):
             product = vector * self.coefficients[index]
             actual_solution = actual_solution + product
         difference = self.constant - actual_solution
-        if affirmative_upper_boundary > difference > affirmative_lower_boundary:
+        if affirmative_upper_boundary > difference >= affirmative_lower_boundary:
             data = str(1)
-        elif negative_upper_boundary > difference > negative_lower_boundary:
-            data = str(0)
         else:
-            data = str(return_random_int(2, False))
+            data = str(0)
         return data
 
 
