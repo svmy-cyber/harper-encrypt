@@ -263,14 +263,22 @@ def show_menu():
 def handle_option(selected_option):
     if selected_option == 1:
         print("Configure Key Pair")
-        generate_or_load_public_key(89)
+        public_key = generate_or_load_public_key(89)
+        print()
+        print("Public Key: " + public_key.file_path)
+        print("Private Key: " + public_key.file_path.replace("public", "private"))
+        print()
     elif selected_option == 2:
         print("Encrypt Text")
         public_key = generate_or_load_public_key(89)
         encrypted_string_path = request_and_process_cipher_identifier("encrypt")
         text_to_encrypt_input = input("Enter text to encrypt: ")
-        EncryptedString(public_key, text_to_encrypt_input, encrypted_string_path)
-        print("Text Successfully Encrypted")
+        encrypted_text = EncryptedString(public_key, text_to_encrypt_input, encrypted_string_path)
+        print()
+        print("Public Key: " + public_key.file_path)
+        print("Private Key: " + public_key.file_path.replace("public", "private"))
+        print("Encrypted Text: " + encrypted_text.encrypted_string_file_path)
+        print()
     elif selected_option == 3:
         print("Decrypt Text")
         public_key = generate_or_load_public_key(89)
@@ -278,7 +286,9 @@ def handle_option(selected_option):
         encrypted_and_decrypted_full_paths = request_and_process_cipher_identifier("decrypt")
         encrypted_text = load_from_file(encrypted_and_decrypted_full_paths[0])
         decrypted_string = DecryptedString(public_key, private_key, encrypted_text, encrypted_and_decrypted_full_paths[1])
-        print("Decrypted Text: " + decrypted_string.decrypted_string)
+        print()
+        print("Decrypted Text: " + decrypted_string.decrypted_string_file_path)
+        print()
     elif selected_option == 4:
         print("Exiting the program...")
         exit()
