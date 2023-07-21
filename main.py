@@ -26,6 +26,7 @@ class PublicKey:
         self.mod_value = mod_value
         self.standard_equations_stringified = []
         self.standard_equations_structured = []
+        self.equation_count = mod_value // 2
         if os.path.isfile(self.file_path):
             self.standard_equations_stringified = eval(load_from_file(self.file_path))
             for index, equation in enumerate(self.standard_equations_stringified):
@@ -34,7 +35,7 @@ class PublicKey:
                 self.standard_equations_structured.append(StandardEquation(coefficient_list, constant))
         else:
             private_key = PrivateKey(self.file_path.replace("public", "private"), self.mod_value)
-            for equation_index in range(self.mod_value):
+            for equation_index in range(self.equation_count):
                 coefficients = []
                 constant = 0
                 for coefficient_index in range(self.mod_value):
@@ -105,7 +106,7 @@ class StandardEquation:
         elif negative_upper_boundary >= difference >= negative_lower_boundary:
             data = str(0)
         else:
-            data = return_random_int(2, False)
+            data = str(return_random_int(2, False))
         return data
 
     def stringify(self):
@@ -213,7 +214,7 @@ def generate_error(max_error_size: int):
 
 
 def select_random_equation(public_key: PublicKey):
-    index = return_random_int(public_key.mod_value, False)
+    index = return_random_int(public_key.equation_count, False)
     return public_key.standard_equations_structured[index]
 
 
@@ -256,11 +257,20 @@ def preflight_checks_create_key(proposed_path: str):
 def load_key(key_type: str):
     key_identifier_input = input("Enter a Key identifier string: ")
     key_path = preflight_checks_load_key(key_identifier_input, key_type)
-    mod_value = len(eval(load_from_file(key_path)))
+    mod_value = derive_mod_from_key(key_type, key_path)
     if key_type == "private":
         return PrivateKey(key_path, mod_value)
     else:
         return PublicKey(key_path, mod_value)
+
+
+def derive_mod_from_key(key_type: str, path: str):
+    if key_type == "private":
+        return len(eval(load_from_file(path)))
+    else:
+        public_key = eval(load_from_file(path))
+        public_key_first_item_list = public_key[0]
+        return len(public_key_first_item_list[0])
 
 
 def preflight_checks_load_key(proposed_path: str, key_type: str):
