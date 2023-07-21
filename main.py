@@ -309,23 +309,47 @@ def show_menu():
     print("1. Configure New Key Pair")
     print("2. Encrypt Text")
     print("3. Decrypt Text")
-    print("4. Exit")
+    print("4. Test Modulus")
+    print("5. Exit")
+
+
+def test_modulus(val: int):
+    errors = []
+    if not is_prime(val):
+        errors.append("Modulus is not prime.")
+    if val < 23:
+        errors.append("The selected modulus must be 23 or larger.")
+    if val > 499:
+        errors.append("The selected modulus must be 499 or smaller.")
+    return errors
+
+
+def modulus_report(val: int):
+    print("Max Error: " + str(max_error(val)))
+    print("Max Encapsulation: " + str(encapsulation_component_limit(val)))
+    print("Error Tolerance: " + str(error_tolerance(val)))
+
+
+def error_report(errors: list):
+    for error in errors:
+        print(error)
 
 
 def handle_option(selected_option):
     if selected_option == 1:
         print("Configure Key Pair")
-        selected_mod_value = int(input("Enter a modulus (prime number < 500): "))
-        if is_prime(selected_mod_value):
-            if selected_mod_value > 499:
-                raise Exception("The selected modulus is too large.")
+        selected_mod_value = int(input("Enter a selected modulus: "))
+        errors = test_modulus(selected_mod_value)
+        if len(errors) > 0:
+            print()
+            error_report(errors)
+            print()
+        else:
             public_key = create_public_key(selected_mod_value)
             print()
             print("Public Key: " + public_key.file_path)
             print("Private Key: " + public_key.file_path.replace("public", "private"))
             print()
-        else:
-            raise Exception("The provided value is not prime.")
     elif selected_option == 2:
         print("Encrypt Text")
         public_key = load_key("public")
@@ -346,6 +370,16 @@ def handle_option(selected_option):
         print("Decrypted Text: " + decrypted_string.decrypted_string_file_path)
         print()
     elif selected_option == 4:
+        print("Test Modulus")
+        selected_mod_value = int(input("Enter a selected modulus: "))
+        errors = test_modulus(selected_mod_value)
+        print()
+        if len(errors) > 0:
+            error_report(errors)
+        else:
+            modulus_report(selected_mod_value)
+        print()
+    elif selected_option == 5:
         print("Exiting the program...")
         exit()
     else:
