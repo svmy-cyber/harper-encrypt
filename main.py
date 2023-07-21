@@ -1,3 +1,4 @@
+import math
 import os
 from time import perf_counter_ns
 
@@ -71,10 +72,6 @@ class StandardEquation:
         self.coefficients = coefficients
         self.constant = constant
 
-    def embed_data(self, data):
-        assert isinstance(data, int)
-        self.constant = self.constant + data
-
     def add_equation(self, standard_equation):
         assert isinstance(standard_equation, StandardEquation)
         for index, coefficient in enumerate(standard_equation.coefficients):
@@ -84,8 +81,9 @@ class StandardEquation:
                 self.coefficients[index] = self.coefficients[index] + coefficient
         self.constant = self.constant + standard_equation.constant
 
-    def stringify(self):
-        return [self.coefficients, self.constant]
+    def embed_data(self, data):
+        assert isinstance(data, int)
+        self.constant = self.constant + data
 
     def extract_data(self, vectors, mod_value):
         assert isinstance(vectors, list)
@@ -94,28 +92,36 @@ class StandardEquation:
         affirmative = mod_value // 2
         affirmative_lower_boundary = affirmative - tolerance
         affirmative_upper_boundary = affirmative + tolerance
+        negative = 0
+        negative_lower_boundary = negative - tolerance
+        negative_upper_boundary = negative + tolerance
         actual_solution = 0
         for index, vector in enumerate(vectors):
             product = vector * self.coefficients[index]
             actual_solution = actual_solution + product
         difference = self.constant - actual_solution
-        if affirmative_upper_boundary > difference >= affirmative_lower_boundary:
+        if affirmative_upper_boundary >= difference >= affirmative_lower_boundary:
             data = str(1)
-        else:
+        elif negative_upper_boundary >= difference >= negative_lower_boundary:
             data = str(0)
+        else:
+            data = return_random_int(2, False)
         return data
 
-
-def encapsulation_component_limit(mod_value: int):
-    return error_tolerance(mod_value) // 4
+    def stringify(self):
+        return [self.coefficients, self.constant]
 
 
 def error_tolerance(mod_value: int):
-    return mod_value // 4
+    return (mod_value // 4) - 1
 
 
 def max_error(mod_value: int):
-    return error_tolerance(mod_value) // encapsulation_component_limit(mod_value)
+    return math.floor(mod_value * 0.05)
+
+
+def encapsulation_component_limit(mod_value: int):
+    return error_tolerance(mod_value) // max_error(mod_value)
 
 
 class EncapsulationEquation:
@@ -238,18 +244,14 @@ def preflight_checks_create_key(proposed_path: str):
     return full_path_public_key
 
 
-def load_public_key():
+def load_key(key_type: str):
     key_identifier_input = input("Enter a Key identifier string: ")
-    public_key_path = preflight_checks_load_key(key_identifier_input, "public")
-    public_key_mod_value = len(eval(load_from_file(public_key_path)))
-    return PublicKey(public_key_path, public_key_mod_value)
-
-
-def load_private_key():
-    key_identifier_input = input("Enter a Key identifier string: ")
-    private_key_path = preflight_checks_load_key(key_identifier_input, "private")
-    private_key_mod = len(eval(load_from_file(private_key_path)))
-    return PrivateKey(private_key_path, private_key_mod)
+    key_path = preflight_checks_load_key(key_identifier_input, key_type)
+    mod_value = len(eval(load_from_file(key_path)))
+    if key_type == "private":
+        return PrivateKey(key_path, mod_value)
+    else:
+        return PublicKey(key_path, mod_value)
 
 
 def preflight_checks_load_key(proposed_path: str, key_type: str):
@@ -312,7 +314,7 @@ def handle_option(selected_option):
         print()
     elif selected_option == 2:
         print("Encrypt Text")
-        public_key = load_public_key()
+        public_key = load_key("public")
         encrypted_string_path = return_prospective_encrypted_path()
         encrypted_text = EncryptedString(public_key, input("Enter text to encrypt: "), encrypted_string_path)
         print()
@@ -322,7 +324,7 @@ def handle_option(selected_option):
         print()
     elif selected_option == 3:
         print("Decrypt Text")
-        private_key = load_private_key()
+        private_key = load_key("private")
         decrypted_and_encrypted_full_paths = return_decrypted_and_encrypted_paths()
         encrypted_text = load_from_file(decrypted_and_encrypted_full_paths[0])
         decrypted_string = DecryptedString(private_key, encrypted_text, decrypted_and_encrypted_full_paths[1])
