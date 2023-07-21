@@ -1,5 +1,6 @@
 import math
 import os
+import random
 from time import perf_counter_ns
 
 
@@ -106,7 +107,7 @@ class StandardEquation:
         elif negative_upper_boundary >= difference >= negative_lower_boundary:
             data = str(0)
         else:
-            data = str(return_random_int(2, False))
+            data = str(0)
         return data
 
     def stringify(self):
@@ -189,6 +190,8 @@ class DecryptedCharacterContainer:
             self.character_binary_string = self.character_binary_string + equation.extract_data(
                 self.private_key.vectors, self.private_key.mod_value)
         self.character_unicode_int = int(self.character_binary_string, 2)
+        if self.character_unicode_int < 32 or self.character_unicode_int > 126:
+            self.character_unicode_int = random.randint(32, 126)
         self.character_ascii_char = chr(self.character_unicode_int)
 
 
