@@ -229,6 +229,15 @@ def return_random_int(mod_value: int, non_zero: bool):
     return factor
 
 
+def is_prime(number):
+    if number <= 1:
+        return False
+    for i in range(2, int(math.sqrt(number)) + 1):
+        if number % i == 0:
+            return False
+    return True
+
+
 def create_public_key(mod_value: int):
     key_identifier_input = input("Enter a Key identifier string: ")
     public_key_path = preflight_checks_create_key(key_identifier_input)
@@ -306,12 +315,17 @@ def show_menu():
 def handle_option(selected_option):
     if selected_option == 1:
         print("Configure Key Pair")
-        selected_mod_value = int(input("Enter a modulus: "))
-        public_key = create_public_key(selected_mod_value)
-        print()
-        print("Public Key: " + public_key.file_path)
-        print("Private Key: " + public_key.file_path.replace("public", "private"))
-        print()
+        selected_mod_value = int(input("Enter a modulus (prime number < 500): "))
+        if is_prime(selected_mod_value):
+            if selected_mod_value > 499:
+                raise Exception("The selected modulus is too large.")
+            public_key = create_public_key(selected_mod_value)
+            print()
+            print("Public Key: " + public_key.file_path)
+            print("Private Key: " + public_key.file_path.replace("public", "private"))
+            print()
+        else:
+            raise Exception("The provided value is not prime.")
     elif selected_option == 2:
         print("Encrypt Text")
         public_key = load_key("public")
